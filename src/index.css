@@ -1,0 +1,44 @@
+:root {
+  --primary-color: #6366F1;
+  --secondary-color: #818CF8;
+  --bg-gradient-start: #EEF2FF;
+  --bg-gradient-end: #C7D2FE;
+  --text-dark: #312E81;
+  --text-light: #6366F1;
+  --error-color: #F43F5E;
+  --success-color: #10B981;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --keyboard-bg: rgba(224, 231, 255, 0.8);
+  --key-bg: #FFFFFF;
+  --key-shadow: 0 4px 0 #A5B4FC;
+  --key-active-shadow: 0 0px 0 #A5B4FC;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Outfit', 'Zen Maru Gothic', sans-serif;
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  color: var(--text-dark);
+  min-height: 100vh;
+  margin: 0;
+  overflow: hidden; /* スマホブラウザでの意図しないスクロール防止 */
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* fallback for browsers without dvh */
+  height: 100dvh;
+  width: 100vw;
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative;
+}
