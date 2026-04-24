@@ -43,50 +43,43 @@ export function AdminDashboard() {
     return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
-  // 新規生徒登録
+  // 新規生徒登録（サーバーサイドAPI経由でadmin権限で作成）
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCode || !newName || !newPass) {
       setRegStatus('すべての項目を入力してください');
       return;
     }
+    if (newPass.length < 6) {
+      setRegStatus('パスワードは6文字以上にしてください');
+      return;
+    }
     setRegLoading(true);
     setRegStatus('');
 
-    const email = `${newCode.trim()}@spelling-game.app`;
-    const { error } = await supabase.auth.admin.createUser({
-      email,
-      password: newPass,
-      email_confirm: true,
-      user_metadata: {
-        student_code: newCode.trim(),
-        display_name: newName.trim(),
-        is_admin: isAdminFlag,
-      },
-    });
-
-    if (error) {
-      // admin.createUser が使えない場合はsignUpで代替
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password: newPass,
-        options: {
-          data: {
-            student_code: newCode.trim(),
-            display_name: newName.trim(),
-            is_admin: isAdminFlag,
-          },
-        },
+    try {
+      // Vercel Serverless Function 経由でユーザーを作成（service_role keyを使用）
+      const response = await fetch('/api/createStudent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: newCode.trim(),
+          name: newName.trim(),
+          password: newPass,
+          isAdmin: isAdminFlag,
+        }),
       });
-      if (signUpError) {
-        setRegStatus(`エラー: ${signUpError.message}`);
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setRegStatus(`エラー: ${result.error || '登録に失敗しました'}`);
       } else {
         setRegStatus(`✅ 「${newName}」さん（ID: ${newCode}）を登録しました！`);
         setNewCode(''); setNewName(''); setNewPass(''); setIsAdminFlag(false);
       }
-    } else {
-      setRegStatus(`✅ 「${newName}」さん（ID: ${newCode}）を登録しました！`);
-      setNewCode(''); setNewName(''); setNewPass(''); setIsAdminFlag(false);
+    } catch (err: any) {
+      setRegStatus(`エラー: 通信に失敗しました（${err.message}）`);
     }
     setRegLoading(false);
   };

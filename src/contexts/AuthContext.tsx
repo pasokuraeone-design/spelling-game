@@ -58,6 +58,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const email = `${studentCode}@spelling-game.app`;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: `エラー: ${error.message}` };
+    // サインイン成功後、セッション取得
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
+      // プロフィールが無ければ作成(Upsert)
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: session.user.id,
+          student_code: studentCode,
+          display_name: studentCode,
+          is_admin: false,
+        });
+      if (upsertError) console.error('プロフィール作成エラー:', upsertError);
+      await fetchProfile(session.user.id);
+    }
     return { error: null };
   };
 
