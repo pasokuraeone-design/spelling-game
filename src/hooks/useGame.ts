@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Word, GameState } from '../types';
-import { wordList, shuffleArray } from '../data/words';
+import { wordList, shuffleArray, categories } from '../data/words';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useGame(categoryId: string) {
+  const { user } = useAuth();
   const [words, setWords] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentInput, setCurrentInput] = useState('');
   const [gameState, setGameState] = useState<GameState>('playing');
   const [errorIndex, setErrorIndex] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const startTimeRef = useRef<number | null>(null); // ゲーム開始時刻を記録
 
   // 初期化：カテゴリで絞り込んで問題をシャッフルしてセット
@@ -24,16 +28,29 @@ export function useGame(categoryId: string) {
     setGameState('playing');
     setErrorIndex(null);
     setElapsedSeconds(0);
+    setCorrectCount(0);
     startTimeRef.current = Date.now(); // タイマーリセット
   }, [categoryId]);
 
   const currentWord = words[currentIndex];
 
+  // ゲーム結果をSupabaseに保存
+  const saveResult = useCallback(async (correct: number, total: number, seconds: number) => {
+    if (!user) return;
+    const cat = categories.find(c => c.id === categoryId);
+    await supabase.from('game_results').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      category_name: cat?.name ?? categoryId,
+      score: correct,
+      total,
+      time_seconds: seconds,
+    });
+  }, [user, categoryId]);
+
   const handleKeyPress = useCallback((key: string) => {
     if (gameState !== 'playing' || !currentWord) return;
     
-    // スペースの場合は自動でスキップするか、スペースキー入力を求めるか
-    // 今回は文字の入力のみを判定。スペースは自動補完する実装にする
     let actualInput = currentInput;
     let actualTargetChar = currentWord.english[actualInput.length];
     
@@ -49,7 +66,6 @@ export function useGame(categoryId: string) {
       setCurrentInput(newInput);
       setErrorIndex(null);
 
-      // 全部入力し終えたかチェック
       // 次の文字がスペースならそれも自動で埋める
       let finalInput = newInput;
       while (currentWord.english[finalInput.length] === ' ') {
@@ -61,6 +77,8 @@ export function useGame(categoryId: string) {
       }
 
       if (finalInput.length === currentWord.english.length) {
+        const newCorrect = correctCount + 1;
+        setCorrectCount(newCorrect);
         setGameState('correct');
         setTimeout(() => {
           if (currentIndex < words.length - 1) {
@@ -72,6 +90,8 @@ export function useGame(categoryId: string) {
             if (startTimeRef.current !== null) {
               const seconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
               setElapsedSeconds(seconds);
+              // Supabaseに成績を保存
+              saveResult(newCorrect, words.length, seconds);
             }
             setGameState('finished');
           }
@@ -83,7 +103,7 @@ export function useGame(categoryId: string) {
       // 0.3秒後にエラー表示をリセット
       setTimeout(() => setErrorIndex(null), 300);
     }
-  }, [currentWord, currentInput, gameState, currentIndex, words.length]);
+  }, [currentWord, currentInput, gameState, currentIndex, words.length, correctCount, saveResult]);
 
   return {
     currentWord,
