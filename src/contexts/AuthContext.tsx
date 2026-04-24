@@ -17,15 +17,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // プロフィール情報をSupabaseから取得
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    setProfileLoading(true);
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
     if (data) setProfile(data as Profile);
+    if (error) console.error('プロフィール取得エラー:', error);
+    setProfileLoading(false);
   };
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading: loading || profileLoading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
