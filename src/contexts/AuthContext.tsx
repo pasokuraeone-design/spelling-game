@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (studentCode: string, password: string) => {
     const email = `${studentCode}@spelling-game.app`;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: 'IDまたはパスワードが違います' };
+    if (error) return { error: `エラー: ${error.message}` };
     return { error: null };
   };
 
