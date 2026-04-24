@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabaseプロジェクトの接続設定
+// Supabaseプロジェクトの接続設定（環境変数はVercelのダッシュボードで管理）
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
