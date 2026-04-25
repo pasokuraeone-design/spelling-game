@@ -17,34 +17,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  // プロフィール情報をSupabaseから取得
-  const fetchProfile = async (userId: string) => {
-    setProfileLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (data) setProfile(data as Profile);
-    if (error) console.error('プロフィール取得エラー:', error);
-    setProfileLoading(false);
+  // プロフィール情報をSupabaseから取得（失敗時はメールアドレスから仮プロフィールを作成）
+  const fetchProfile = async (currentUser: User) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (data) {
+        setProfile(data as Profile);
+      } else {
+        // プロフィールが取れなかった場合、仮のプロフィールをセット
+        // （RLSでブロックされている場合やプロフィール未作成の場合の対策）
+        console.warn('プロフィール取得失敗、仮プロフィールを使用:', error?.message);
+        const code = currentUser.email?.split('@')[0] ?? 'unknown';
+        const meta = currentUser.user_metadata ?? {};
+        setProfile({
+          id: currentUser.id,
+          student_code: meta.student_code ?? code,
+          display_name: meta.display_name ?? code,
+          is_admin: meta.is_admin ?? false,
+        });
+      }
+    } catch (err) {
+      // 例外発生時も仮プロフィールをセット
+      console.error('プロフィール取得例外:', err);
+      const code = currentUser.email?.split('@')[0] ?? 'unknown';
+      setProfile({
+        id: currentUser.id,
+        student_code: code,
+        display_name: code,
+        is_admin: false,
+      });
+    }
   };
 
   useEffect(() => {
     // 現在のログイン状態を確認
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      setLoading(false);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     });
 
     // ログイン状態の変化を監視
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser);
       } else {
         setProfile(null);
       }
@@ -58,22 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const email = `${studentCode}@spelling-game.app`;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: `エラー: ${error.message}` };
-    // サインイン成功後、セッション取得
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setUser(session.user);
-      // プロフィールが無ければ作成(Upsert)
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: session.user.id,
-          student_code: studentCode,
-          display_name: studentCode,
-          is_admin: false,
-        });
-      if (upsertError) console.error('プロフィール作成エラー:', upsertError);
-      await fetchProfile(session.user.id);
-    }
+    // onAuthStateChangeが自動でuser/profileを更新するのを待つ
     return { error: null };
   };
 
@@ -83,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading: loading || profileLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
