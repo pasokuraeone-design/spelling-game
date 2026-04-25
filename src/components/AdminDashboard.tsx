@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import type { GameResult } from '../types';
+import type { GameResult, Profile } from '../types';
 
 export function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const [results, setResults] = useState<GameResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'results' | 'register'>('results');
+  const [tab, setTab] = useState<'results' | 'register' | 'students'>('results');
+
+  // 生徒一覧
+  const [students, setStudents] = useState<Profile[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
 
   // 新規生徒登録フォーム
   const [newCode, setNewCode] = useState('');
@@ -29,6 +33,23 @@ export function AdminDashboard() {
     };
     fetchResults();
   }, []);
+
+  // 生徒一覧を取得
+  const fetchStudents = async () => {
+    setStudentsLoading(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('is_admin', false)
+      .order('student_code', { ascending: true });
+    if (data) setStudents(data as Profile[]);
+    setStudentsLoading(false);
+  };
+
+  // 生徒一覧タブを開いた時にデータを取得
+  useEffect(() => {
+    if (tab === 'students') fetchStudents();
+  }, [tab]);
 
   // 秒数 → 分:秒 に変換
   const formatTime = (secs: number) => {
@@ -77,6 +98,8 @@ export function AdminDashboard() {
       } else {
         setRegStatus(`✅ 「${newName}」さん（ID: ${newCode}）を登録しました！`);
         setNewCode(''); setNewName(''); setNewPass(''); setIsAdminFlag(false);
+        // 生徒一覧も更新
+        fetchStudents();
       }
     } catch (err: any) {
       setRegStatus(`エラー: 通信に失敗しました（${err.message}）`);
@@ -105,6 +128,12 @@ export function AdminDashboard() {
           onClick={() => setTab('results')}
         >
           📊 成績一覧
+        </button>
+        <button
+          className={`admin-tab ${tab === 'students' ? 'active' : ''}`}
+          onClick={() => setTab('students')}
+        >
+          👥 生徒一覧
         </button>
         <button
           className={`admin-tab ${tab === 'register' ? 'active' : ''}`}
@@ -146,6 +175,39 @@ export function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* 生徒一覧タブ */}
+      {tab === 'students' && (
+        <div className="admin-content">
+          {studentsLoading ? (
+            <p className="admin-loading">読み込み中...</p>
+          ) : students.length === 0 ? (
+            <p className="admin-empty">まだ生徒が登録されていません</p>
+          ) : (
+            <>
+              <p style={{textAlign:'center',color:'#666',marginBottom:'12px'}}>登録生徒数: <strong>{students.length}人</strong></p>
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>生徒ID</th>
+                      <th>名前</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map(s => (
+                      <tr key={s.id}>
+                        <td>{s.student_code}</td>
+                        <td>{s.display_name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
