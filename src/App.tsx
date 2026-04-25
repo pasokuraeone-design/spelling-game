@@ -27,14 +27,10 @@ function AppContent() {
   }
 
   // 先生アカウント → 管理ダッシュボード
-  // デバッグ: is_adminの値を直接チェック（型の問題を回避）
   const isAdmin = profile.is_admin === true || String(profile.is_admin) === 'true';
   if (isAdmin) {
     return <AdminDashboard />;
   }
-
-  // デバッグ表示（原因特定後に削除）
-  console.log('DEBUG profile:', JSON.stringify(profile));
 
   // 生徒アカウント → ゲーム画面
   const handleBackToMenu = () => setSelectedCategory(null);
@@ -48,10 +44,6 @@ function AppContent() {
           <button className="app-signout-btn" onClick={signOut}>ログアウト</button>
         </div>
       </header>
-      {/* デバッグ情報（原因特定後に削除） */}
-      <div style={{background:'#ffe0e0',padding:'10px',fontSize:'12px',wordBreak:'break-all'}}>
-        <strong>DEBUG:</strong> is_admin={String(profile.is_admin)} | type={typeof profile.is_admin} | display_name={profile.display_name} | student_code={profile.student_code}
-      </div>
       <main className="app-main">
         {!selectedCategory ? (
           <CategorySelection onSelectCategory={setSelectedCategory} />
