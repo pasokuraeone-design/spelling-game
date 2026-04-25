@@ -1,15 +1,21 @@
 import React from 'react';
 import { useGame } from '../hooks/useGame';
 import { Keyboard } from './Keyboard';
+import { categories } from '../data/words';
 import './GameScreen.css';
 
 interface GameScreenProps {
   categoryId: string;
   onBackToMenu: () => void;
+  onNextStage?: (categoryId: string) => void;
 }
 
-export const GameScreen: React.FC<GameScreenProps> = ({ categoryId, onBackToMenu }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({ categoryId, onBackToMenu, onNextStage }) => {
   const { currentWord, currentInput, gameState, errorIndex, progress, elapsedSeconds, handleKeyPress } = useGame(categoryId);
+
+  // 次のステージを取得
+  const currentStageIndex = categories.findIndex(c => c.id === categoryId);
+  const nextStage = currentStageIndex < categories.length - 1 ? categories[currentStageIndex + 1] : null;
 
   if (!currentWord) return null;
 
@@ -42,11 +48,22 @@ export const GameScreen: React.FC<GameScreenProps> = ({ categoryId, onBackToMenu
         <h2>All Clear!</h2>
         <p>全問クリア！</p>
         <p className="time-result">⏱ {elapsedSeconds}秒でクリア！</p>
-        <button className="primary-button" onClick={() => window.location.reload()}>
-          もう一度
+
+        {/* 次のステージへ進むボタン */}
+        {nextStage && onNextStage && (
+          <button
+            className="primary-button next-stage-btn"
+            onClick={() => onNextStage(nextStage.id)}
+          >
+            🔓 次のステージへ → {nextStage.name}
+          </button>
+        )}
+
+        <button className="secondary-button" onClick={() => window.location.reload()} style={{ marginTop: '0.75rem' }}>
+          もう一度チャレンジ
         </button>
-        <button className="secondary-button" onClick={onBackToMenu} style={{ marginTop: '1rem' }}>
-          違うカテゴリを選択
+        <button className="secondary-button" onClick={onBackToMenu} style={{ marginTop: '0.5rem' }}>
+          ステージ選択に戻る
         </button>
       </div>
     );

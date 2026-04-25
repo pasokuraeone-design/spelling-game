@@ -205,3 +205,34 @@
 .primary-button:active {
   transform: scale(0.95);
 }
+
+/* 次のステージへボタン */
+.next-stage-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 4px 20px 0 rgba(16, 185, 129, 0.7); }
+}
+
+.secondary-button {
+  background: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  font-size: 1rem;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-button:hover {
+  background: rgba(99, 102, 241, 0.1);
+}

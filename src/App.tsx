@@ -48,7 +48,11 @@ function AppContent() {
         {!selectedCategory ? (
           <CategorySelection onSelectCategory={setSelectedCategory} />
         ) : (
-          <GameScreen categoryId={selectedCategory} onBackToMenu={handleBackToMenu} />
+          <GameScreen
+            categoryId={selectedCategory}
+            onBackToMenu={handleBackToMenu}
+            onNextStage={(nextId) => setSelectedCategory(nextId)}
+          />
         )}
       </main>
     </div>
